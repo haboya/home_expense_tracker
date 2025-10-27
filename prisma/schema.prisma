@@ -1,0 +1,105 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  user
+}
+
+model User {
+  id               String             @id // Format: "YY-MM-XXX" (e.g., "25-10-001")
+  firstName        String
+  lastName         String
+  email            String             @unique
+  phone            String?
+  password         String?            // Optional for OAuth users
+  role             UserRole           @default(user)
+  createdAt        DateTime           @default(now())
+  incomeCategories IncomeCategory[]
+  incomes          Income[]
+  expenseCategories ExpenseCategory[]
+  expenses         Expense[]
+  monthlyBalances  MonthlyBalance[]
+
+  @@map("users")
+}
+
+model IncomeCategory {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  incomes     Income[]
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @default(now())
+
+  @@map("income_categories")
+}
+
+model Income {
+  id         Int            @id @default(autoincrement())
+  amount     Decimal        @db.Decimal(10, 2)
+  categoryId Int
+  category   IncomeCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  details    String?
+  userId     String
+  user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime       @default(now())
+
+  @@map("incomes")
+}
+
+model ExpenseCategory {
+  id              Int              @id @default(autoincrement())
+  name            String
+  percentageShare Decimal          @db.Decimal(5, 2) // e.g., 25.50 for 25.5%
+  description     String?
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expenses        Expense[]
+  monthlyBalances MonthlyBalance[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @default(now())
+
+  @@map("expense_categories")
+}
+
+model Expense {
+  id         Int             @id @default(autoincrement())
+  amount     Decimal         @db.Decimal(10, 2)
+  categoryId Int
+  category   ExpenseCategory @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  details    String?
+  userId     String
+  user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime        @default(now())
+
+  @@map("expenses")
+}
+
+model MonthlyBalance {
+  id               Int             @id @default(autoincrement())
+  monthYear        String          // Format: "YYYY-MM" (e.g., "2025-10")
+  expenseCategoryId Int
+  expenseCategory  ExpenseCategory @relation(fields: [expenseCategoryId], references: [id], onDelete: Cascade)
+  openingBalance   Decimal         @db.Decimal(10, 2)
+  totalDeposits    Decimal         @db.Decimal(10, 2) @default(0)
+  totalWithdrawals Decimal         @db.Decimal(10, 2) @default(0)
+  closingBalance   Decimal         @db.Decimal(10, 2)
+  userId           String
+  user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt        DateTime        @default(now())
+
+  @@unique([monthYear, expenseCategoryId, userId])
+  @@map("monthly_balances")
+}
