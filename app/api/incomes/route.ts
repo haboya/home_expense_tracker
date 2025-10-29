@@ -8,7 +8,6 @@ import { z } from 'zod'
 import { Decimal } from '@prisma/client/runtime/library'
 
 const incomeSchema = z.object({
-  date: z.string(),
   amount: z.number().positive(),
   categoryId: z.string(),
   details: z.string().optional(),
@@ -30,7 +29,7 @@ export async function GET(request: Request) {
     const where: any = { ...filter }
 
     if (startDate && endDate) {
-      where.date = {
+      where.createdAt = {
         gte: new Date(startDate),
         lte: new Date(endDate),
       }
@@ -41,7 +40,7 @@ export async function GET(request: Request) {
       include: {
         category: true,
       },
-      orderBy: { date: 'desc' },
+      orderBy: { createdAt: 'desc' },
     })
 
     return NextResponse.json(incomes)
@@ -68,9 +67,8 @@ export async function POST(request: Request) {
     // Create income entry
     const income = await prisma.income.create({
       data: {
-        date: new Date(validatedData.date),
         amount: new Decimal(validatedData.amount),
-        categoryId: validatedData.categoryId,
+        categoryId: Number(validatedData.categoryId),
         details: validatedData.details,
         userId: session.user.id,
       },
@@ -84,7 +82,7 @@ export async function POST(request: Request) {
       const distributions = await distributeIncome(
         session.user.id,
         new Decimal(validatedData.amount),
-        new Date(validatedData.date)
+        new Date()
       )
 
       return NextResponse.json(
@@ -108,6 +106,7 @@ export async function POST(request: Request) {
     }
   } catch (error) {
     if (error instanceof z.ZodError) {
+      console.log(error.errors)
       return NextResponse.json(
         { error: 'Validation error', details: error.errors },
         { status: 400 }

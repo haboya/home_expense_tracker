@@ -7,6 +7,8 @@ export default function CategoriesPage() {
   const [incomeCategories, setIncomeCategories] = useState<any[]>([])
   const [showExpenseForm, setShowExpenseForm] = useState(false)
   const [showIncomeForm, setShowIncomeForm] = useState(false)
+  const [editingExpense, setEditingExpense] = useState<any>(null)
+  const [editingIncome, setEditingIncome] = useState<any>(null)
   const [formData, setFormData] = useState({
     name: '',
     percentageShare: '',
@@ -33,40 +35,101 @@ export default function CategoriesPage() {
   const handleSubmitExpense = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await fetch('/api/expense-categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          percentageShare: parseFloat(formData.percentageShare),
-          description: formData.description,
-        }),
-      })
+      if (editingExpense) {
+        // Update existing category
+        await fetch(`/api/expense-categories/${editingExpense.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            percentageShare: parseFloat(formData.percentageShare),
+            description: formData.description,
+          }),
+        })
+        setEditingExpense(null)
+      } else {
+        // Create new category
+        await fetch('/api/expense-categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            percentageShare: parseFloat(formData.percentageShare),
+            description: formData.description,
+          }),
+        })
+      }
       setFormData({ name: '', percentageShare: '', description: '' })
       setShowExpenseForm(false)
       fetchCategories()
     } catch (error) {
-      console.error('Error creating expense category:', error)
+      console.error('Error saving expense category:', error)
     }
+  }
+
+  const handleEditExpense = (category: any) => {
+    setEditingExpense(category)
+    setFormData({
+      name: category.name,
+      percentageShare: category.percentageShare,
+      description: category.description || '',
+    })
+    setShowExpenseForm(true)
+  }
+
+  const handleCancelExpenseEdit = () => {
+    setEditingExpense(null)
+    setFormData({ name: '', percentageShare: '', description: '' })
+    setShowExpenseForm(false)
   }
 
   const handleSubmitIncome = async (e: React.FormEvent) => {
     e.preventDefault()
     try {
-      await fetch('/api/income-categories', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: formData.name,
-          description: formData.description,
-        }),
-      })
+      if (editingIncome) {
+        // Update existing category
+        await fetch(`/api/income-categories/${editingIncome.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            description: formData.description,
+          }),
+        })
+        setEditingIncome(null)
+      } else {
+        // Create new category
+        await fetch('/api/income-categories', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: formData.name,
+            description: formData.description,
+          }),
+        })
+      }
       setFormData({ name: '', percentageShare: '', description: '' })
       setShowIncomeForm(false)
       fetchCategories()
     } catch (error) {
-      console.error('Error creating income category:', error)
+      console.error('Error saving income category:', error)
     }
+  }
+
+  const handleEditIncome = (category: any) => {
+    setEditingIncome(category)
+    setFormData({
+      name: category.name,
+      percentageShare: '',
+      description: category.description || '',
+    })
+    setShowIncomeForm(true)
+  }
+
+  const handleCancelIncomeEdit = () => {
+    setEditingIncome(null)
+    setFormData({ name: '', percentageShare: '', description: '' })
+    setShowIncomeForm(false)
   }
 
   const totalPercentage = expenseCategories.reduce(
@@ -76,13 +139,13 @@ export default function CategoriesPage() {
 
   return (
     <div className="px-4 py-6">
-      <h1 className="text-3xl font-bold text-gray-900 mb-8">Manage Categories</h1>
+      <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-8">Manage Categories</h1>
 
       {/* Expense Categories */}
-      <div className="bg-white shadow rounded-lg p-6 mb-8">
-        <div className="flex justify-between items-center mb-4">
+      <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-8">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-4">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">Expense Categories</h2>
+            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Expense Categories</h2>
             <p className="text-sm text-gray-600 mt-1">
               Total Percentage: <span className={totalPercentage === 100 ? 'text-green-600' : 'text-red-600'}>
                 {totalPercentage.toFixed(2)}%
@@ -91,7 +154,7 @@ export default function CategoriesPage() {
           </div>
           <button
             onClick={() => setShowExpenseForm(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Add Category
           </button>
@@ -99,14 +162,17 @@ export default function CategoriesPage() {
 
         {showExpenseForm && (
           <form onSubmit={handleSubmitExpense} className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <div className="grid grid-cols-1 gap-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              {editingExpense ? 'Edit Category' : 'Add New Category'}
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <input
                 type="text"
                 placeholder="Category Name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
-                className="px-3 py-2 border border-gray-300 rounded-md"
+                className="px-3 py-2 text-gray-600 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <input
                 type="number"
@@ -115,23 +181,23 @@ export default function CategoriesPage() {
                 value={formData.percentageShare}
                 onChange={(e) => setFormData({ ...formData, percentageShare: e.target.value })}
                 required
-                className="px-3 py-2 border border-gray-300 rounded-md"
+                className="px-3 py-2 text-gray-600 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <input
                 type="text"
                 placeholder="Description (optional)"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="px-3 py-2 border border-gray-300 rounded-md"
+                className="sm:col-span-2 px-3 py-2 text-gray-600 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
-              <div className="flex gap-2">
-                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md">
-                  Save
+              <div className="sm:col-span-2 flex flex-col sm:flex-row gap-2">
+                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                  {editingExpense ? 'Update' : 'Save'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowExpenseForm(false)}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md"
+                  onClick={handleCancelExpenseEdit}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
                 >
                   Cancel
                 </button>
@@ -147,6 +213,7 @@ export default function CategoriesPage() {
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Share %</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -161,6 +228,14 @@ export default function CategoriesPage() {
                   <td className="px-6 py-4 text-sm text-gray-500">
                     {category.description || '-'}
                   </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                    <button
+                      onClick={() => handleEditExpense(category)}
+                      className="text-blue-600 hover:text-blue-900"
+                    >
+                      Edit
+                    </button>
+                  </td>
                 </tr>
               ))}
             </tbody>
@@ -169,12 +244,12 @@ export default function CategoriesPage() {
       </div>
 
       {/* Income Categories */}
-      <div className="bg-white shadow rounded-lg p-6">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-xl font-semibold text-gray-900">Income Categories</h2>
+      <div className="bg-white shadow rounded-lg p-4 sm:p-6">
+        <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-4">
+          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Income Categories</h2>
           <button
             onClick={() => setShowIncomeForm(true)}
-            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
+            className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Add Category
           </button>
@@ -182,30 +257,33 @@ export default function CategoriesPage() {
 
         {showIncomeForm && (
           <form onSubmit={handleSubmitIncome} className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <div className="grid grid-cols-1 gap-4">
+            <h3 className="text-lg font-medium text-gray-900 mb-4">
+              {editingIncome ? 'Edit Category' : 'Add New Category'}
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <input
                 type="text"
                 placeholder="Category Name"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
-                className="px-3 py-2 border border-gray-300 rounded-md"
+                className="px-3 py-2 text-gray-600 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
               <input
                 type="text"
                 placeholder="Description (optional)"
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                className="px-3 py-2 border border-gray-300 rounded-md"
+                className="px-3 py-2 text-gray-600 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
-              <div className="flex gap-2">
-                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md">
-                  Save
+              <div className="sm:col-span-2 flex flex-col sm:flex-row gap-2">
+                <button type="submit" className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700">
+                  {editingIncome ? 'Update' : 'Save'}
                 </button>
                 <button
                   type="button"
-                  onClick={() => setShowIncomeForm(false)}
-                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md"
+                  onClick={handleCancelIncomeEdit}
+                  className="px-4 py-2 bg-gray-300 text-gray-700 rounded-md hover:bg-gray-400"
                 >
                   Cancel
                 </button>
@@ -220,6 +298,7 @@ export default function CategoriesPage() {
               <tr>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Description</th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Actions</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -230,6 +309,14 @@ export default function CategoriesPage() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-500">
                     {category.description || '-'}
+                  </td>
+                  <td className="px-6 py-4 text-sm">
+                    <button
+                      onClick={() => handleEditIncome(category)}
+                      className="text-blue-600 hover:text-blue-900"
+                    >
+                      Edit
+                    </button>
                   </td>
                 </tr>
               ))}

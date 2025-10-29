@@ -83,16 +83,16 @@ export default function AdminUsersPage() {
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="mb-6 flex justify-between items-center">
+      <div className="mb-6 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">User Management</h1>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">User Management</h1>
           <p className="mt-2 text-sm text-gray-600">
             Manage all users in the system
           </p>
         </div>
         <Link
           href="/auth/register"
-          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+          className="inline-flex items-center justify-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
         >
           + Create New User
         </Link>
@@ -105,10 +105,75 @@ export default function AdminUsersPage() {
       )}
 
       <div className="bg-white shadow overflow-hidden sm:rounded-lg">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
-            <tr>
-              <th
+        {/* Mobile view */}
+        <div className="sm:hidden">
+          {users.map((user) => (
+            <div key={user.id} className="border-b border-gray-200 px-4 py-4">
+              <div className="flex items-center justify-between">
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-gray-900 truncate">
+                    {user.firstName} {user.lastName}
+                  </p>
+                  <p className="text-sm text-gray-500 truncate">{user.email}</p>
+                  <p className="text-xs text-gray-400">ID: {user.id}</p>
+                </div>
+                <div className="flex flex-col items-end space-y-2">
+                  <span
+                    className={`px-2 inline-flex text-xs leading-5 font-semibold rounded-full ${
+                      user.role === 'admin'
+                        ? 'bg-purple-100 text-purple-800'
+                        : 'bg-green-100 text-green-800'
+                    }`}
+                  >
+                    {user.role}
+                  </span>
+                  <div className="flex space-x-2">
+                    <Link
+                      href={`/dashboard/admin/users/${user.id}`}
+                      className="text-blue-600 hover:text-blue-900 text-sm"
+                    >
+                      Edit
+                    </Link>
+                    {deleteConfirm === user.id ? (
+                      <div className="flex items-center space-x-1">
+                        <span className="text-gray-600 text-xs">Confirm?</span>
+                        <button
+                          onClick={() => handleDelete(user.id)}
+                          className="text-red-600 hover:text-red-900 text-sm"
+                        >
+                          Yes
+                        </button>
+                        <button
+                          onClick={() => setDeleteConfirm(null)}
+                          className="text-gray-600 hover:text-gray-900 text-sm"
+                        >
+                          No
+                        </button>
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => setDeleteConfirm(user.id)}
+                        className="text-red-600 hover:text-red-900 text-sm"
+                      >
+                        Delete
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+              {user.phone && (
+                <p className="text-sm text-gray-500 mt-1">Phone: {user.phone}</p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Desktop table view */}
+        <div className="hidden sm:block overflow-x-auto">
+          <table className="min-w-full divide-y divide-gray-200">
+            <thead className="bg-gray-50">
+              <tr>
+                <th
                 scope="col"
                 className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
               >
@@ -208,6 +273,7 @@ export default function AdminUsersPage() {
             ))}
           </tbody>
         </table>
+        </div>
         {users.length === 0 && !loading && (
           <div className="text-center py-8 text-gray-500">
             No users found. Create a new user to get started.

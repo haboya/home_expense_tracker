@@ -33,7 +33,7 @@ export const authOptions: NextAuthOptions = {
         }
 
         if (!user.password) {
-          throw new Error('No password set for this account. Please sign in with Google or set a password first.')
+          throw new Error('No password set for this account. Please sign in with Google to set a password.')
         }
 
         const isPasswordValid = await bcrypt.compare(

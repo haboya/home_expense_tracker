@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import { formatCurrency } from '@/lib/format'
 
 interface Stats {
   totalIncome: number
@@ -72,7 +73,7 @@ export default function Dashboard() {
                   Total Income (This Month)
                 </dt>
                 <dd className="mt-1 text-3xl font-semibold text-green-600">
-                  ${stats.totalIncome.toFixed(2)}
+                  Ugx {formatCurrency(stats.totalIncome)}
                 </dd>
               </div>
             </div>
@@ -87,7 +88,7 @@ export default function Dashboard() {
                   Total Expenses (This Month)
                 </dt>
                 <dd className="mt-1 text-3xl font-semibold text-red-600">
-                  ${stats.totalExpense.toFixed(2)}
+                  Ugx {formatCurrency(stats.totalExpense)}
                 </dd>
               </div>
             </div>
@@ -102,7 +103,7 @@ export default function Dashboard() {
                   Balance
                 </dt>
                 <dd className={`mt-1 text-3xl font-semibold ${stats.balance >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                  ${stats.balance.toFixed(2)}
+                  Ugx {formatCurrency(stats.balance)}
                 </dd>
               </div>
             </div>

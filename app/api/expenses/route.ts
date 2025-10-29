@@ -30,7 +30,7 @@ export async function GET(request: Request) {
     const where: any = { ...filter }
 
     if (startDate && endDate) {
-      where.date = {
+      where.createdAt = {
         gte: new Date(startDate),
         lte: new Date(endDate),
       }
@@ -41,7 +41,7 @@ export async function GET(request: Request) {
       include: {
         category: true,
       },
-      orderBy: { date: 'desc' },
+      orderBy: { createdAt: 'desc' },
     })
 
     return NextResponse.json(expenses)
@@ -65,12 +65,31 @@ export async function POST(request: Request) {
     const body = await request.json()
     const validatedData = expenseSchema.parse(body)
 
-    // Create expense entry
+    // Update monthly balance first to check for insufficient funds
+    // before creating the expense record
+    try {
+      await recordExpense(
+        session.user.id,
+        validatedData.categoryId,
+        new Decimal(validatedData.amount),
+        new Date(validatedData.date)
+      )
+    } catch (balanceError: any) {
+      // If it's an insufficient funds error, return it to the user
+      if (balanceError.message?.includes('Insufficient funds')) {
+        return NextResponse.json(
+          { error: balanceError.message },
+          { status: 400 }
+        )
+      }
+      throw balanceError
+    }
+
+    // Create expense entry only after balance update succeeds
     const expense = await prisma.expense.create({
       data: {
-        date: new Date(validatedData.date),
         amount: new Decimal(validatedData.amount),
-        categoryId: validatedData.categoryId,
+        categoryId: Number(validatedData.categoryId),
         details: validatedData.details,
         userId: session.user.id,
       },
@@ -78,14 +97,6 @@ export async function POST(request: Request) {
         category: true,
       },
     })
-
-    // Update monthly balance
-    await recordExpense(
-      session.user.id,
-      validatedData.categoryId,
-      new Decimal(validatedData.amount),
-      new Date(validatedData.date)
-    )
 
     return NextResponse.json(
       { expense, message: 'Expense recorded successfully' },

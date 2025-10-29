@@ -6,8 +6,13 @@ import Providers from '@/components/Providers'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'Home Expense Tracker',
+  title: 'Expense Tracker',
   description: 'Track your personal expenses and incomes',
+  icons: {
+    icon: '/favicon.ico',
+    shortcut: '/favicon.ico',
+    apple: '/logo.svg',
+  },
 }
 
 export default function RootLayout({

@@ -1,4 +1,4 @@
-# Home Expense Tracker
+# Expense Tracker
 
 A comprehensive Next.js application for tracking personal expenses and incomes with automatic income distribution across expense categories.
 
@@ -191,11 +191,11 @@ When you add an income entry:
 
 1. The system retrieves all your expense categories
 2. Each category receives a portion of the income based on its percentage share
-3. For example, if you earn $1,000:
-   - Savings (40%) receives $400
-   - Food (20%) receives $200
-   - Rent (30%) receives $300
-   - Entertainment (10%) receives $100
+3. For example, if you earn Ugx 1,000:
+   - Savings (40%) receives Ugx 400
+   - Food (20%) receives Ugx 200
+   - Rent (30%) receives Ugx 300
+   - Entertainment (10%) receives Ugx 100
 
 4. These amounts are added to each category's monthly balance as "deposits"
 5. When you spend from a category, it's recorded as a "withdrawal"

@@ -2,7 +2,7 @@ import { prisma } from '@/lib/prisma'
 import { Decimal } from '@prisma/client/runtime/library'
 
 export interface IncomeDistribution {
-  expenseCategoryId: string
+  expenseCategoryId: number
   categoryName: string
   amount: Decimal
   monthYear: string
@@ -115,6 +115,7 @@ export async function distributeIncome(
 
 /**
  * Updates monthly balance when an expense is recorded
+ * Throws an error if the expense would result in a negative balance
  */
 export async function recordExpense(
   userId: string,
@@ -129,7 +130,7 @@ export async function recordExpense(
     where: {
       monthYear_expenseCategoryId_userId: {
         monthYear,
-        expenseCategoryId,
+        expenseCategoryId: Number(expenseCategoryId),
         userId,
       },
     },
@@ -141,6 +142,17 @@ export async function recordExpense(
     const newClosingBalance = existingBalance.openingBalance
       .add(existingBalance.totalDeposits)
       .sub(newTotalWithdrawals)
+
+    // Check if balance would be negative
+    if (newClosingBalance.lessThan(0)) {
+      const category = await prisma.expenseCategory.findUnique({
+        where: { id: Number(expenseCategoryId) },
+        select: { name: true },
+      })
+      throw new Error(
+        `Insufficient funds in ${category?.name || 'category'}. Available balance: ${existingBalance.closingBalance.toFixed(2)}, Expense amount: ${expenseAmount.toFixed(2)}`
+      )
+    }
 
     await prisma.monthlyBalance.update({
       where: { id: existingBalance.id },
@@ -156,7 +168,7 @@ export async function recordExpense(
       where: {
         monthYear_expenseCategoryId_userId: {
           monthYear: previousMonthYear,
-          expenseCategoryId,
+          expenseCategoryId: Number(expenseCategoryId),
           userId,
         },
       },
@@ -165,11 +177,22 @@ export async function recordExpense(
     const openingBalance = previousBalance?.closingBalance || new Decimal(0)
     const closingBalance = openingBalance.sub(expenseAmount)
 
+    // Check if balance would be negative
+    if (closingBalance.lessThan(0)) {
+      const category = await prisma.expenseCategory.findUnique({
+        where: { id: Number(expenseCategoryId) },
+        select: { name: true },
+      })
+      throw new Error(
+        `Insufficient funds in ${category?.name || 'category'}. Available balance: ${openingBalance.toFixed(2)}, Expense amount: ${expenseAmount.toFixed(2)}`
+      )
+    }
+
     // Create new monthly balance
     await prisma.monthlyBalance.create({
       data: {
         monthYear,
-        expenseCategoryId,
+        expenseCategoryId: Number(expenseCategoryId),
         userId,
         openingBalance,
         totalDeposits: new Decimal(0),
@@ -178,6 +201,46 @@ export async function recordExpense(
       },
     })
   }
+}
+
+/**
+ * Get available balance for an expense category in a specific month
+ */
+export async function getAvailableBalance(
+  userId: string,
+  expenseCategoryId: number,
+  date: Date = new Date()
+): Promise<Decimal> {
+  const monthYear = formatMonthYear(date)
+
+  // Find monthly balance
+  const existingBalance = await prisma.monthlyBalance.findUnique({
+    where: {
+      monthYear_expenseCategoryId_userId: {
+        monthYear,
+        expenseCategoryId,
+        userId,
+      },
+    },
+  })
+
+  if (existingBalance) {
+    return existingBalance.closingBalance
+  }
+
+  // Get previous month's closing balance
+  const previousMonthYear = getPreviousMonthYear(date)
+  const previousBalance = await prisma.monthlyBalance.findUnique({
+    where: {
+      monthYear_expenseCategoryId_userId: {
+        monthYear: previousMonthYear,
+        expenseCategoryId,
+        userId,
+      },
+    },
+  })
+
+  return previousBalance?.closingBalance || new Decimal(0)
 }
 
 /**
