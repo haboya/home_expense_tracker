@@ -122,7 +122,7 @@ export default function ProfilePage() {
 
     try {
       const updateData: any = {
-        password: passwordData.newPassword,
+        newPassword: passwordData.newPassword,
       }
 
       // Only require current password if user already has one

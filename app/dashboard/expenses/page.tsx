@@ -10,6 +10,8 @@ export default function ExpensesPage() {
   const [availableBalance, setAvailableBalance] = useState<string | null>(null)
   const [loadingBalance, setLoadingBalance] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [startDate, setStartDate] = useState('')
+  const [endDate, setEndDate] = useState('')
   const [formData, setFormData] = useState({
     amount: '',
     categoryId: '',
@@ -22,7 +24,21 @@ export default function ExpensesPage() {
   }, [])
 
   const fetchExpenses = async () => {
-    const res = await fetch('/api/expenses')
+    let url = '/api/expenses'
+    const params = new URLSearchParams()
+    
+    if (startDate) {
+      params.append('startDate', new Date(startDate).toISOString())
+    }
+    if (endDate) {
+      params.append('endDate', new Date(endDate).toISOString())
+    }
+    
+    if (params.toString()) {
+      url += `?${params.toString()}`
+    }
+    
+    const res = await fetch(url)
     setExpenses(await res.json())
   }
 
@@ -86,9 +102,29 @@ export default function ExpensesPage() {
     fetchExpenses()
   }
 
+  const handleStartDateChange = (date: string) => {
+    setStartDate(date)
+  }
+
+  const handleEndDateChange = (date: string) => {
+    setEndDate(date)
+  }
+
+  const handleClearFilter = () => {
+    setStartDate('')
+    setEndDate('')
+  }
+
+  // Auto-apply filter when dates change
+  useEffect(() => {
+    if (categories.length > 0) {
+      fetchExpenses()
+    }
+  }, [startDate, endDate])
+
   return (
     <div className="px-4 py-6">
-      <div className="flex justify-between items-center mb-8">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold text-gray-900">Expenses</h1>
         <button
           onClick={() => setShowForm(true)}
@@ -97,6 +133,66 @@ export default function ExpensesPage() {
           Add Expense
         </button>
       </div>
+
+      {/* Date Filter */}
+      <div className="bg-white shadow rounded-lg p-4 mb-6">
+        <h3 className="text-sm font-semibold text-gray-700 mb-3">Filter by Date Range</h3>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">Start Date</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => handleStartDateChange(e.target.value)}
+              className="w-full px-3 py-2 text-sm text-gray-600 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            />
+          </div>
+          <div>
+            <label className="block text-xs text-gray-600 mb-1">End Date</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => handleEndDateChange(e.target.value)}
+              className="w-full px-3 py-2 text-sm text-gray-600 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-red-500"
+            />
+          </div>
+          {(startDate || endDate) && (
+            <div className="flex items-end">
+              <button
+                onClick={handleClearFilter}
+                className="w-full px-4 py-2 bg-gray-300 text-gray-700 text-sm rounded-md hover:bg-gray-400"
+              >
+                Clear Filter
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Summary */}
+      {expenses.length > 0 && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+            <p className="text-sm text-blue-800">
+              <span className="font-semibold">Showing {expenses.length} expense{expenses.length !== 1 ? 's' : ''}</span>
+              {(startDate || endDate) && (
+                <span className="ml-2">
+                  {startDate && endDate ? (
+                    <>from {new Date(startDate).toLocaleDateString()} to {new Date(endDate).toLocaleDateString()}</>
+                  ) : startDate ? (
+                    <>from {new Date(startDate).toLocaleDateString()}</>
+                  ) : (
+                    <>until {new Date(endDate).toLocaleDateString()}</>
+                  )}
+                </span>
+              )}
+            </p>
+            <p className="text-lg font-bold text-red-600">
+              Total: Ugx {formatCurrency(expenses.reduce((sum, exp) => sum + parseFloat(exp.amount), 0))}
+            </p>
+          </div>
+        </div>
+      )}
 
       {showForm && (
         <div className="bg-white shadow rounded-lg p-6 mb-8">

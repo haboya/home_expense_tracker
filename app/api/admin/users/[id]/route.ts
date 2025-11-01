@@ -10,7 +10,7 @@ const updateUserSchema = z.object({
   firstName: z.string().min(1).optional(),
   lastName: z.string().min(1).optional(),
   email: z.string().email().optional(),
-  phone: z.string().optional(),
+  phone: z.string().nullable().optional(),
   role: z.enum(['admin', 'user']).optional(),
   password: z.string().min(6).optional(),
 })
@@ -47,7 +47,7 @@ export async function GET(
       return NextResponse.json({ error: 'User not found' }, { status: 404 })
     }
 
-    return NextResponse.json(user)
+    return NextResponse.json({ user })
   } catch (error) {
     console.error('Error fetching user:', error)
     return NextResponse.json(

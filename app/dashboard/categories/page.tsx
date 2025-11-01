@@ -9,6 +9,8 @@ export default function CategoriesPage() {
   const [showIncomeForm, setShowIncomeForm] = useState(false)
   const [editingExpense, setEditingExpense] = useState<any>(null)
   const [editingIncome, setEditingIncome] = useState<any>(null)
+  const [isExpenseCollapsed, setIsExpenseCollapsed] = useState(false)
+  const [isIncomeCollapsed, setIsIncomeCollapsed] = useState(false)
   const [formData, setFormData] = useState({
     name: '',
     percentageShare: '',
@@ -144,27 +146,45 @@ export default function CategoriesPage() {
       {/* Expense Categories */}
       <div className="bg-white shadow rounded-lg p-4 sm:p-6 mb-8">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-4">
-          <div>
-            <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Expense Categories</h2>
-            <p className="text-sm text-gray-600 mt-1">
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsExpenseCollapsed(!isExpenseCollapsed)}
+                className="text-gray-500 hover:text-gray-700 transition-transform duration-200"
+                aria-label={isExpenseCollapsed ? 'Expand' : 'Collapse'}
+              >
+                <svg
+                  className={`w-5 h-5 transform transition-transform ${isExpenseCollapsed ? '-rotate-90' : 'rotate-0'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Expense Categories</h2>
+            </div>
+            <p className="text-sm text-gray-600 mt-1 ml-7">
               Total Percentage: <span className={totalPercentage === 100 ? 'text-green-600' : 'text-red-600'}>
                 {totalPercentage.toFixed(2)}%
               </span>
             </p>
           </div>
           <button
-            onClick={() => setShowExpenseForm(true)}
+            onClick={() => {setShowExpenseForm(true); setIsExpenseCollapsed(false);}}
             className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Add Category
           </button>
         </div>
 
-        {showExpenseForm && (
-          <form onSubmit={handleSubmitExpense} className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              {editingExpense ? 'Edit Category' : 'Add New Category'}
-            </h3>
+        {!isExpenseCollapsed && (
+          <>
+            {showExpenseForm && (
+              <form onSubmit={handleSubmitExpense} className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  {editingExpense ? 'Edit Category' : 'Add New Category'}
+                </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <input
                 type="text"
@@ -241,26 +261,48 @@ export default function CategoriesPage() {
             </tbody>
           </table>
         </div>
+          </>
+        )}
       </div>
 
       {/* Income Categories */}
       <div className="bg-white shadow rounded-lg p-4 sm:p-6">
         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-4">
-          <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Income Categories</h2>
+          <div className="flex-1">
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setIsIncomeCollapsed(!isIncomeCollapsed)}
+                className="text-gray-500 hover:text-gray-700 transition-transform duration-200"
+                aria-label={isIncomeCollapsed ? 'Expand' : 'Collapse'}
+              >
+                <svg
+                  className={`w-5 h-5 transform transition-transform ${isIncomeCollapsed ? '-rotate-90' : 'rotate-0'}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              <h2 className="text-lg sm:text-xl font-semibold text-gray-900">Income Categories</h2>
+            </div>
+          </div>
           <button
-            onClick={() => setShowIncomeForm(true)}
+            onClick={() => {setShowIncomeForm(true); setIsIncomeCollapsed(false);}}
             className="w-full sm:w-auto px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700"
           >
             Add Category
           </button>
         </div>
 
-        {showIncomeForm && (
-          <form onSubmit={handleSubmitIncome} className="mb-6 p-4 bg-gray-50 rounded-lg">
-            <h3 className="text-lg font-medium text-gray-900 mb-4">
-              {editingIncome ? 'Edit Category' : 'Add New Category'}
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {!isIncomeCollapsed && (
+          <>
+            {showIncomeForm && (
+              <form onSubmit={handleSubmitIncome} className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h3 className="text-lg font-medium text-gray-900 mb-4">
+                  {editingIncome ? 'Edit Category' : 'Add New Category'}
+                </h3>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <input
                 type="text"
                 placeholder="Category Name"
@@ -323,6 +365,8 @@ export default function CategoriesPage() {
             </tbody>
           </table>
         </div>
+          </>
+        )}
       </div>
     </div>
   )

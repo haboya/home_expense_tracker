@@ -107,7 +107,7 @@ export default function AdminUsersPage() {
       <div className="bg-white shadow overflow-hidden sm:rounded-lg">
         {/* Mobile view */}
         <div className="sm:hidden">
-          {users.map((user) => (
+          {users && users.length > 0 ? users.map((user) => (
             <div key={user.id} className="border-b border-gray-200 px-4 py-4">
               <div className="flex items-center justify-between">
                 <div className="flex-1 min-w-0">
@@ -165,7 +165,11 @@ export default function AdminUsersPage() {
                 <p className="text-sm text-gray-500 mt-1">Phone: {user.phone}</p>
               )}
             </div>
-          ))}
+          )) : (
+            <div className="px-4 py-8 text-center text-gray-500">
+              No users found
+            </div>
+          )}
         </div>
 
         {/* Desktop table view */}
@@ -212,7 +216,7 @@ export default function AdminUsersPage() {
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
-            {users.map((user) => (
+            {users && users.length > 0 ? users.map((user) => (
               <tr key={user.id}>
                 <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
                   {user.id}
@@ -270,15 +274,16 @@ export default function AdminUsersPage() {
                   )}
                 </td>
               </tr>
-            ))}
+            )) : (
+              <tr>
+                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                  No users found
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
         </div>
-        {users.length === 0 && !loading && (
-          <div className="text-center py-8 text-gray-500">
-            No users found. Create a new user to get started.
-          </div>
-        )}
       </div>
     </div>
   )

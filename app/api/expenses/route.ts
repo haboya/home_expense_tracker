@@ -29,10 +29,10 @@ export async function GET(request: Request) {
     const filter = getUserFilter(session)
     const where: any = { ...filter }
 
-    if (startDate && endDate) {
+    if (startDate || endDate) {
       where.createdAt = {
-        gte: new Date(startDate),
-        lte: new Date(endDate),
+        gte: startDate ? new Date(startDate) : undefined,
+        lte: endDate ? new Date(endDate) : undefined,
       }
     }
 

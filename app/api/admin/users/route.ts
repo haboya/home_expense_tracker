@@ -29,8 +29,7 @@ export async function GET() {
       },
       orderBy: { createdAt: 'desc' },
     })
-
-    return NextResponse.json(users)
+    return NextResponse.json({ users })
   } catch (error) {
     console.error('Error fetching users:', error)
     return NextResponse.json(
