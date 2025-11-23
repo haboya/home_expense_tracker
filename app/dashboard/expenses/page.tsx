@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { formatCurrency } from '@/lib/format'
+import { usePeriod } from '@/contexts/PeriodContext'
 
 export default function ExpensesPage() {
+  const { selectedPeriod } = usePeriod()
   const [expenses, setExpenses] = useState<any[]>([])
   const [categories, setCategories] = useState<any[]>([])
   const [showForm, setShowForm] = useState(false)
@@ -19,13 +21,19 @@ export default function ExpensesPage() {
   })
 
   useEffect(() => {
-    fetchExpenses()
-    fetchCategories()
-  }, [])
+    if (selectedPeriod) {
+      fetchExpenses()
+      fetchCategories()
+    }
+  }, [selectedPeriod])
 
   const fetchExpenses = async () => {
+    if (!selectedPeriod) return
+    
     let url = '/api/expenses'
     const params = new URLSearchParams()
+    
+    params.append('periodId', selectedPeriod.id)
     
     if (startDate) {
       params.append('startDate', new Date(startDate).toISOString())
@@ -122,17 +130,29 @@ export default function ExpensesPage() {
     }
   }, [startDate, endDate])
 
+  const isActivePeriod = selectedPeriod?.status === 'ACTIVE'
+
   return (
     <div className="px-4 py-6">
       <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-6 gap-4">
         <h1 className="text-3xl font-bold text-gray-900">Expenses</h1>
-        <button
-          onClick={() => setShowForm(true)}
-          className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
-        >
-          Add Expense
-        </button>
+        {isActivePeriod && (
+          <button
+            onClick={() => setShowForm(true)}
+            className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700"
+          >
+            Add Expense
+          </button>
+        )}
       </div>
+      
+      {!isActivePeriod && (
+        <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-4 mb-4">
+          <p className="text-sm text-yellow-800">
+            You are viewing a closed period. Adding, editing, or deleting expenses is not allowed.
+          </p>
+        </div>
+      )}
 
       {/* Date Filter */}
       <div className="bg-white shadow rounded-lg p-4 mb-6">

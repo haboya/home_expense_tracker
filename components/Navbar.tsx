@@ -3,23 +3,37 @@
 import { signOut, useSession } from 'next-auth/react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import Image from 'next/image'
 import AdminBadge from './AdminBadge'
+import PeriodSelector from './PeriodSelector'
 
 export default function Navbar() {
   const { data: session } = useSession()
   const pathname = usePathname()
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
-
+  const [isProfileMenuOpen, setIsProfileMenuOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
   const isActive = (path: string) => pathname === path
+
+  // Close dropdown when clicking outside
+    useEffect(() => {
+      function handleClickOutside(event: MouseEvent) {
+        if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+          setIsProfileMenuOpen(false)
+        }
+      }
+  
+      document.addEventListener('mousedown', handleClickOutside)
+      return () => document.removeEventListener('mousedown', handleClickOutside)
+    }, [])
 
   return (
     <nav className="bg-white shadow-lg sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">
-            <Link href="/">
+            <Link href="/dashboard">
               <div className="flex-shrink-0 flex items-center gap-2">
                   <Image 
                     src="/logo.svg" 
@@ -35,16 +49,6 @@ export default function Navbar() {
             </Link>
             {session && (
               <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
-                <Link
-                  href="/dashboard"
-                  className={`${
-                    isActive('/dashboard')
-                      ? 'border-blue-500 text-gray-900'
-                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
-                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
-                >
-                  Dashboard
-                </Link>
                 <Link
                   href="/dashboard/incomes"
                   className={`${
@@ -85,6 +89,16 @@ export default function Navbar() {
                 >
                   Balances
                 </Link>
+                <Link
+                  href="/dashboard/periods"
+                  className={`${
+                    isActive('/dashboard/periods')
+                      ? 'border-blue-500 text-gray-900'
+                      : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                  } inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium`}
+                >
+                  Periods
+                </Link>
                 {session.user?.role === 'admin' && (
                   <Link
                     href="/dashboard/admin/users"
@@ -103,21 +117,44 @@ export default function Navbar() {
           <div className="hidden sm:flex sm:items-center">
             {session ? (
               <div className="flex items-center space-x-4">
-                <div className="flex items-center space-x-2">
-                  <Link
-                    href="/dashboard/profile"
-                    className="text-sm text-gray-700 hover:text-gray-900"
+                <PeriodSelector />
+                <div className="relative" ref={dropdownRef}>
+                  <button 
+                    onClick={() => setIsProfileMenuOpen(!isProfileMenuOpen)} 
+                    className="flex items-center gap-2 px-3 py-2 text-sm bg-white "
                   >
-                    {session.user?.name}
-                  </Link>
-                  <AdminBadge />
+                    <span className="text-sm text-gray-700 hover:text-gray-900">{session.user?.name.split(' ')[0]}</span>
+                    <svg
+                      className={`w-4 h-4 text-gray-500 transition-transform ${isProfileMenuOpen ? 'rotate-180' : ''}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {isProfileMenuOpen && (
+                    <div className="absolute right-0 mt-2 w-64 bg-white border border-gray-200 rounded-md shadow-lg z-50">
+                      <div className="py-1 max-h-96 overflow-y-auto">
+                        <div className="flex items-center space-x-2">
+                          <Link
+                            href="/dashboard/profile"
+                            className="text-sm px-4 py-2 text-gray-700 hover:text-gray-900"
+                          >
+                            My profile
+                          </Link>
+                          <AdminBadge />
+                        </div>
+                        <button
+                          onClick={() => signOut({ callbackUrl: '/auth/signin' })}
+                          className="text-sm px-4 py-2 text-gray-500 hover:text-gray-900"
+                        >
+                          Sign out
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </div>
-                <button
-                  onClick={() => signOut({ callbackUrl: '/auth/signin' })}
-                  className="text-sm text-gray-700 hover:text-gray-900"
-                >
-                  Sign out
-                </button>
               </div>
             ) : (
               <Link
@@ -166,17 +203,9 @@ export default function Navbar() {
         {session && (
           <div className={`${isMobileMenuOpen ? 'block' : 'hidden'} sm:hidden`}>
             <div className="pt-2 pb-3 space-y-1">
-              <Link
-                href="/dashboard"
-                className={`${
-                  isActive('/dashboard')
-                    ? 'bg-blue-50 border-blue-500 text-blue-700'
-                    : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
-                } block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
-                onClick={() => setIsMobileMenuOpen(false)}
-              >
-                Dashboard
-              </Link>
+              <div>
+                <PeriodSelector />
+              </div>
               <Link
                 href="/dashboard/incomes"
                 className={`${
@@ -220,6 +249,17 @@ export default function Navbar() {
                 onClick={() => setIsMobileMenuOpen(false)}
               >
                 Balances
+              </Link>
+              <Link
+                href="/dashboard/periods"
+                className={`${
+                  isActive('/dashboard/periods')
+                    ? 'bg-blue-50 border-blue-500 text-blue-700'
+                    : 'border-transparent text-gray-500 hover:bg-gray-50 hover:border-gray-300 hover:text-gray-700'
+                } block pl-3 pr-4 py-2 border-l-4 text-base font-medium`}
+                onClick={() => setIsMobileMenuOpen(false)}
+              >
+                Periods
               </Link>
               {session.user?.role === 'admin' && (
                 <Link
