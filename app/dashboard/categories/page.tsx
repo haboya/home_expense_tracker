@@ -9,8 +9,8 @@ export default function CategoriesPage() {
   const [showIncomeForm, setShowIncomeForm] = useState(false)
   const [editingExpense, setEditingExpense] = useState<any>(null)
   const [editingIncome, setEditingIncome] = useState<any>(null)
-  const [isExpenseCollapsed, setIsExpenseCollapsed] = useState(false)
-  const [isIncomeCollapsed, setIsIncomeCollapsed] = useState(false)
+  const [isExpenseCollapsed, setIsExpenseCollapsed] = useState(true)
+  const [isIncomeCollapsed, setIsIncomeCollapsed] = useState(true)
   const [formData, setFormData] = useState({
     name: '',
     percentageShare: '',
