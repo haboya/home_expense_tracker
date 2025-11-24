@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { formatCurrency } from '@/lib/format'
+import { exportPeriodToPDF } from '@/lib/pdf-export'
 
 interface PeriodStats {
   period: {
@@ -52,6 +53,7 @@ export default function PeriodDetailPage() {
   const [stats, setStats] = useState<PeriodStats | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [exporting, setExporting] = useState(false)
 
   useEffect(() => {
     fetchPeriodStats()
@@ -70,6 +72,20 @@ export default function PeriodDetailPage() {
       setError(err instanceof Error ? err.message : 'An error occurred')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleExportPDF = () => {
+    if (!stats) return
+    
+    setExporting(true)
+    try {
+      exportPeriodToPDF(stats)
+    } catch (err) {
+      console.error('Error exporting PDF:', err)
+      alert('Failed to export PDF. Please try again.')
+    } finally {
+      setExporting(false)
     }
   }
 
@@ -134,15 +150,37 @@ export default function PeriodDetailPage() {
                 : 'Ongoing'}
             </p>
           </div>
-          <span
-            className={`px-3 py-1 rounded-full text-sm font-medium ${
-              stats.period.isActive
-                ? 'bg-green-100 text-green-800'
-                : 'bg-gray-100 text-gray-800'
-            }`}
-          >
-            {stats.period.status}
-          </span>
+          <div className="flex items-center gap-3">
+            <button
+              onClick={handleExportPDF}
+              disabled={exporting}
+              className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <svg
+                className="w-4 h-4"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
+                />
+              </svg>
+              {exporting ? 'Exporting...' : 'Export PDF'}
+            </button>
+            <span
+              className={`px-3 py-1 rounded-full text-sm font-medium ${
+                stats.period.isActive
+                  ? 'bg-green-100 text-green-800'
+                  : 'bg-gray-100 text-gray-800'
+              }`}
+            >
+              {stats.period.status}
+            </span>
+          </div>
         </div>
       </div>
 
