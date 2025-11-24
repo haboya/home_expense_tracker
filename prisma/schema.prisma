@@ -15,6 +15,12 @@ enum UserRole {
   user
 }
 
+enum PeriodStatus {
+  ACTIVE
+  CLOSED
+  ARCHIVED
+}
+
 model User {
   id               String             @id // Format: "YY-MM-XXX" (e.g., "25-10-001")
   firstName        String
@@ -29,8 +35,28 @@ model User {
   expenseCategories ExpenseCategory[]
   expenses         Expense[]
   monthlyBalances  MonthlyBalance[]
+  budgetPeriods    BudgetPeriod[]
 
   @@map("users")
+}
+
+model BudgetPeriod {
+  id              String             @id @default(cuid()) @db.VarChar(25)
+  userId          String
+  user            User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String             // e.g., "Q1 2025", "Annual 2025"
+  startDate       DateTime
+  endDate         DateTime?
+  isActive        Boolean            @default(true)
+  status          PeriodStatus       @default(ACTIVE)
+  incomes         Income[]
+  expenses        Expense[]
+  monthlyBalances MonthlyBalance[]
+  createdAt       DateTime           @default(now())
+  updatedAt       DateTime           @updatedAt
+
+  @@index([userId, isActive])
+  @@map("budget_periods")
 }
 
 model IncomeCategory {
@@ -54,8 +80,11 @@ model Income {
   details    String?
   userId     String
   user       User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  periodId   String         @db.VarChar(25)
+  period     BudgetPeriod   @relation(fields: [periodId], references: [id], onDelete: Cascade)
   createdAt  DateTime       @default(now())
 
+  @@index([periodId])
   @@map("incomes")
 }
 
@@ -82,8 +111,11 @@ model Expense {
   details    String?
   userId     String
   user       User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  periodId   String          @db.VarChar(25)
+  period     BudgetPeriod    @relation(fields: [periodId], references: [id], onDelete: Cascade)
   createdAt  DateTime        @default(now())
 
+  @@index([periodId])
   @@map("expenses")
 }
 
@@ -98,8 +130,11 @@ model MonthlyBalance {
   closingBalance   Decimal         @db.Decimal(10, 2)
   userId           String
   user             User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  periodId         String          @db.VarChar(25)
+  period           BudgetPeriod    @relation(fields: [periodId], references: [id], onDelete: Cascade)
   createdAt        DateTime        @default(now())
 
-  @@unique([monthYear, expenseCategoryId, userId])
+  @@unique([monthYear, expenseCategoryId, userId, periodId])
+  @@index([periodId])
   @@map("monthly_balances")
 }

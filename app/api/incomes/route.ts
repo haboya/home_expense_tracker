@@ -4,6 +4,7 @@ import { authOptions } from '@/lib/auth'
 import { getUserFilter } from '@/lib/auth-helpers'
 import { prisma } from '@/lib/prisma'
 import { distributeIncome } from '@/lib/income-distribution'
+import { ensureActivePeriod } from '@/lib/period-helpers'
 import { z } from 'zod'
 import { Decimal } from '@prisma/client/runtime/library'
 
@@ -24,9 +25,17 @@ export async function GET(request: Request) {
     const { searchParams } = new URL(request.url)
     const startDate = searchParams.get('startDate')
     const endDate = searchParams.get('endDate')
+    const periodId = searchParams.get('periodId')
+
+    // Get active period or use provided periodId
+    const activePeriod = await ensureActivePeriod(session.user.id)
+    const targetPeriodId = periodId || activePeriod.id
 
     const filter = getUserFilter(session)
-    const where: any = { ...filter }
+    const where: any = { 
+      ...filter,
+      periodId: targetPeriodId,
+    }
 
     if (startDate || endDate) {
       where.createdAt = {
@@ -64,6 +73,9 @@ export async function POST(request: Request) {
     const body = await request.json()
     const validatedData = incomeSchema.parse(body)
 
+    // Get active period
+    const activePeriod = await ensureActivePeriod(session.user.id)
+
     // Create income entry
     const income = await prisma.income.create({
       data: {
@@ -71,6 +83,7 @@ export async function POST(request: Request) {
         categoryId: Number(validatedData.categoryId),
         details: validatedData.details,
         userId: session.user.id,
+        periodId: activePeriod.id,
       },
       include: {
         category: true,

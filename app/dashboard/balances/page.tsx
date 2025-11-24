@@ -2,8 +2,10 @@
 
 import { useState, useEffect } from 'react'
 import { formatCurrency } from '@/lib/format'
+import { usePeriod } from '@/contexts/PeriodContext'
 
 export default function BalancesPage() {
+  const { selectedPeriod } = usePeriod()
   const [balances, setBalances] = useState<any[]>([])
   const [selectedMonth, setSelectedMonth] = useState('')
 
@@ -14,13 +16,15 @@ export default function BalancesPage() {
   }, [])
 
   useEffect(() => {
-    if (selectedMonth) {
+    if (selectedMonth && selectedPeriod) {
       fetchBalances()
     }
-  }, [selectedMonth])
+  }, [selectedMonth, selectedPeriod])
 
   const fetchBalances = async () => {
-    const res = await fetch(`/api/monthly-balances?monthYear=${selectedMonth}`)
+    if (!selectedPeriod) return
+    
+    const res = await fetch(`/api/monthly-balances?monthYear=${selectedMonth}&periodId=${selectedPeriod.id}`)
     setBalances(await res.json())
   }
 

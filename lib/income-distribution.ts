@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { Decimal } from '@prisma/client/runtime/library'
+import { ensureActivePeriod } from './period-helpers'
 
 export interface IncomeDistribution {
   expenseCategoryId: number
@@ -17,6 +18,8 @@ export async function distributeIncome(
   incomeAmount: Decimal,
   incomeDate: Date
 ): Promise<IncomeDistribution[]> {
+  // Get active period
+  const activePeriod = await ensureActivePeriod(userId)
   // Get all expense categories for the user
   const expenseCategories = await prisma.expenseCategory.findMany({
     where: { userId },
@@ -50,10 +53,11 @@ export async function distributeIncome(
     // Find or create monthly balance for this category and month
     const existingBalance = await prisma.monthlyBalance.findUnique({
       where: {
-        monthYear_expenseCategoryId_userId: {
+        monthYear_expenseCategoryId_userId_periodId: {
           monthYear,
           expenseCategoryId: category.id,
           userId,
+          periodId: activePeriod.id,
         },
       },
     })
@@ -77,10 +81,11 @@ export async function distributeIncome(
       const previousMonthYear = getPreviousMonthYear(incomeDate)
       const previousBalance = await prisma.monthlyBalance.findUnique({
         where: {
-          monthYear_expenseCategoryId_userId: {
+          monthYear_expenseCategoryId_userId_periodId: {
             monthYear: previousMonthYear,
             expenseCategoryId: category.id,
             userId,
+            periodId: activePeriod.id,
           },
         },
       })
@@ -94,6 +99,7 @@ export async function distributeIncome(
           monthYear,
           expenseCategoryId: category.id,
           userId,
+          periodId: activePeriod.id,
           openingBalance,
           totalDeposits: distributionAmount,
           totalWithdrawals: new Decimal(0),
@@ -123,15 +129,18 @@ export async function recordExpense(
   expenseAmount: Decimal,
   expenseDate: Date
 ): Promise<void> {
+  // Get active period
+  const activePeriod = await ensureActivePeriod(userId)
   const monthYear = formatMonthYear(expenseDate)
 
   // Find or create monthly balance
   const existingBalance = await prisma.monthlyBalance.findUnique({
     where: {
-      monthYear_expenseCategoryId_userId: {
+      monthYear_expenseCategoryId_userId_periodId: {
         monthYear,
         expenseCategoryId: Number(expenseCategoryId),
         userId,
+        periodId: activePeriod.id,
       },
     },
   })
@@ -166,10 +175,11 @@ export async function recordExpense(
     const previousMonthYear = getPreviousMonthYear(expenseDate)
     const previousBalance = await prisma.monthlyBalance.findUnique({
       where: {
-        monthYear_expenseCategoryId_userId: {
+        monthYear_expenseCategoryId_userId_periodId: {
           monthYear: previousMonthYear,
           expenseCategoryId: Number(expenseCategoryId),
           userId,
+          periodId: activePeriod.id,
         },
       },
     })
@@ -194,6 +204,7 @@ export async function recordExpense(
         monthYear,
         expenseCategoryId: Number(expenseCategoryId),
         userId,
+        periodId: activePeriod.id,
         openingBalance,
         totalDeposits: new Decimal(0),
         totalWithdrawals: expenseAmount,
@@ -211,15 +222,18 @@ export async function getAvailableBalance(
   expenseCategoryId: number,
   date: Date = new Date()
 ): Promise<Decimal> {
+  // Get active period
+  const activePeriod = await ensureActivePeriod(userId)
   const monthYear = formatMonthYear(date)
 
   // Find monthly balance
   const existingBalance = await prisma.monthlyBalance.findUnique({
     where: {
-      monthYear_expenseCategoryId_userId: {
+      monthYear_expenseCategoryId_userId_periodId: {
         monthYear,
         expenseCategoryId,
         userId,
+        periodId: activePeriod.id,
       },
     },
   })
@@ -232,10 +246,11 @@ export async function getAvailableBalance(
   const previousMonthYear = getPreviousMonthYear(date)
   const previousBalance = await prisma.monthlyBalance.findUnique({
     where: {
-      monthYear_expenseCategoryId_userId: {
+      monthYear_expenseCategoryId_userId_periodId: {
         monthYear: previousMonthYear,
         expenseCategoryId,
         userId,
+        periodId: activePeriod.id,
       },
     },
   })
