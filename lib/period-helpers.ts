@@ -1,23 +1,27 @@
 import { prisma } from './prisma'
 
 export async function getActivePeriod(userId: string) {
-  const activePeriod = await prisma.budgetPeriod.findFirst({
+  return prisma.budgetPeriod.findFirst({
     where: {
       userId,
       isActive: true,
+      status: 'ACTIVE',
     },
   })
-
-  return activePeriod
 }
 
 export async function ensureActivePeriod(userId: string) {
-  let activePeriod = await getActivePeriod(userId)
+  // Fast path: return existing active period if present
+  const existing = await getActivePeriod(userId)
+  if (existing) return existing
 
-  // If no active period exists, create a default one
-  if (!activePeriod) {
-    activePeriod = await prisma.budgetPeriod.create({
+  // Deterministic ID so competing creations collide and only one succeeds
+  const defaultId = `${userId}-default`
+
+  try {
+    const created = await prisma.budgetPeriod.create({
       data: {
+        id: defaultId, // deterministic to enforce single creation
         userId,
         name: 'Default Period',
         startDate: new Date(),
@@ -25,7 +29,12 @@ export async function ensureActivePeriod(userId: string) {
         status: 'ACTIVE',
       },
     })
+    return created
+  } catch (err: any) {
+    // If another request created it simultaneously, fetch and return it
+    const active = await getActivePeriod(userId)
+    if (active) return active
+    // Fallback: rethrow original error if still nothing
+    throw err
   }
-
-  return activePeriod
 }
