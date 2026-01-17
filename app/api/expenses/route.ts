@@ -7,6 +7,7 @@ import { recordExpense } from '@/lib/income-distribution'
 import { ensureActivePeriod } from '@/lib/period-helpers'
 import { z } from 'zod'
 import { Decimal } from '@prisma/client/runtime/library'
+import { logFinancial } from '@/lib/finanacials'
 
 const expenseSchema = z.object({
   date: z.string(),
@@ -110,6 +111,14 @@ export async function POST(request: Request) {
         category: true,
       },
     })
+
+    await logFinancial([
+      {
+        categoryId: expense.categoryId.toString(),
+        amount: Number(expense.amount),
+        increment:false
+      }
+    ], expense.userId, expense.id.toString(), 'WITHDRAWL', Number(expense.amount))
 
     return NextResponse.json(
       { expense, message: 'Expense recorded successfully' },

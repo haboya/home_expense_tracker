@@ -22,21 +22,28 @@ enum PeriodStatus {
   ARCHIVED
 }
 
+enum TransactionType {
+  DEPOSIT
+  WITHDRAWL
+  TRANSFER
+}
+
 model User {
-  id               String             @id // Format: "YY-MM-XXX" (e.g., "25-10-001")
-  firstName        String
-  lastName         String
-  email            String             @unique
-  phone            String?
-  password         String?            // Optional for OAuth users
-  role             UserRole           @default(user)
-  createdAt        DateTime           @default(now())
-  incomeCategories IncomeCategory[]
-  incomes          Income[]
-  expenseCategories ExpenseCategory[]
-  expenses         Expense[]
-  monthlyBalances  MonthlyBalance[]
-  budgetPeriods    BudgetPeriod[]
+  id                      String             @id // Format: "YY-MM-XXX" (e.g., "25-10-001")
+  firstName               String
+  lastName                String
+  email                   String             @unique
+  phone                   String?
+  password                String?            // Optional for OAuth users
+  role                    UserRole           @default(user)
+  createdAt               DateTime           @default(now())
+  incomeCategories        IncomeCategory[]
+  incomes                 Income[]
+  expenseCategories       ExpenseCategory[]
+  expenses                Expense[]
+  monthlyBalances         MonthlyBalance[]
+  budgetPeriods           BudgetPeriod[]
+  financialTransactions   FinancialTransaction[]
 
   @@map("users")
 }
@@ -138,4 +145,17 @@ model MonthlyBalance {
   @@unique([monthYear, expenseCategoryId, userId, periodId])
   @@index([periodId])
   @@map("monthly_balances")
+}
+
+model FinancialTransaction {
+  id           Int             @id @default(autoincrement())
+  transaction  TransactionType
+  refId        String          @db.VarChar(25)
+  amount       Decimal         @db.Decimal(10, 2) @default(0)
+  balances     Json
+  timestamp    DateTime        @default(now())
+  userId       String
+  user         User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("financial_transactions")
 }

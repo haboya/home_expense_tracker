@@ -7,6 +7,7 @@ import { distributeIncome } from '@/lib/income-distribution'
 import { ensureActivePeriod } from '@/lib/period-helpers'
 import { z } from 'zod'
 import { Decimal } from '@prisma/client/runtime/library'
+import { financialLog, logFinancial } from '@/lib/finanacials'
 
 const incomeSchema = z.object({
   amount: z.number().positive(),
@@ -97,6 +98,16 @@ export async function POST(request: Request) {
         new Decimal(validatedData.amount),
         new Date()
       )
+
+      const logs: financialLog[] = distributions.map((dist) => {
+        return {
+          categoryId: dist.expenseCategoryId.toString(),
+          amount: Number(dist.amount),
+          increment: true
+        }
+      })
+
+      await logFinancial( logs, income.userId, income.id.toString(), 'DEPOSIT', Number(income.amount))
 
       return NextResponse.json(
         {
