@@ -41,7 +41,16 @@ interface PeriodStats {
   }>
 }
 
-export function exportPeriodToPDF(stats: PeriodStats) {
+interface FinancialLog {
+  id: number
+  transaction: 'DEPOSIT' | 'WITHDRAWL' | 'TRANSFER'
+  refId: string
+  amount: string
+  balances: Record<string, number>
+  timestamp: string
+}
+
+export function exportPeriodToPDF(stats: PeriodStats, logs: FinancialLog[], categoryMap: Record<string, string>) {
   const doc = new jsPDF()
   const pageWidth = doc.internal.pageSize.getWidth()
   const pageHeight = doc.internal.pageSize.getHeight()
@@ -269,24 +278,204 @@ export function exportPeriodToPDF(stats: PeriodStats) {
       doc.setTextColor(0, 0, 0)
       yPos += 6
     })
+    yPos += 10
   }
 
-  // Footer
+  // Transaction Ledger - Add new page in landscape for better table layout
+  if (logs && logs.length > 0) {
+    // Add a new page in landscape orientation for the ledger
+    doc.addPage('landscape')
+    const landscapeWidth = doc.internal.pageSize.getWidth()
+    const landscapeHeight = doc.internal.pageSize.getHeight()
+    yPos = margin
+
+    doc.setFontSize(14)
+    doc.setFont('helvetica', 'bold')
+    doc.text('Transaction Ledger', margin, yPos)
+    yPos += 10
+
+    // Get category names for headers
+    const categoryIds = Object.keys(categoryMap)
+    const numCategories = categoryIds.length
+    
+    // Calculate column widths for landscape
+    const dateColWidth = 25
+    const typeColWidth = 18
+    const amountColWidth = 30
+    const fixedColsWidth = dateColWidth + typeColWidth + amountColWidth
+    const availableForCategories = landscapeWidth - margin * 2 - fixedColsWidth - 5
+    const categoryColWidth = numCategories > 0 ? Math.floor(availableForCategories / numCategories) : 25
+    
+    doc.setFontSize(7)
+    doc.setFont('helvetica', 'bold')
+    
+    // Header row
+    let xPos = margin
+    doc.text('Date', xPos, yPos)
+    xPos += dateColWidth
+    doc.text('Type', xPos, yPos)
+    xPos += typeColWidth
+    doc.text('Amount', xPos, yPos)
+    xPos += amountColWidth
+    
+    // Category headers
+    categoryIds.forEach((catId) => {
+      const catName = categoryMap[catId] || `Cat ${catId}`
+      // Truncate category name to fit column
+      const maxChars = Math.floor(categoryColWidth / 2.5)
+      doc.text(catName.substring(0, maxChars), xPos, yPos)
+      xPos += categoryColWidth
+    })
+    yPos += 4
+
+    // Draw a line under headers
+    doc.setDrawColor(180, 180, 180)
+    doc.line(margin, yPos - 1, landscapeWidth - margin, yPos - 1)
+    yPos += 2
+
+    doc.setFont('helvetica', 'normal')
+    doc.setFontSize(7)
+    
+    logs.forEach((log, index) => {
+      // Check for new page in landscape
+      if (yPos + 6 > landscapeHeight - margin) {
+        doc.addPage('landscape')
+        yPos = margin
+        
+        // Repeat headers on new page
+        doc.setFontSize(7)
+        doc.setFont('helvetica', 'bold')
+        xPos = margin
+        doc.text('Date', xPos, yPos)
+        xPos += dateColWidth
+        doc.text('Type', xPos, yPos)
+        xPos += typeColWidth
+        doc.text('Amount', xPos, yPos)
+        xPos += amountColWidth
+        categoryIds.forEach((catId) => {
+          const catName = categoryMap[catId] || `Cat ${catId}`
+          const maxChars = Math.floor(categoryColWidth / 2.5)
+          doc.text(catName.substring(0, maxChars), xPos, yPos)
+          xPos += categoryColWidth
+        })
+        yPos += 4
+        doc.setDrawColor(180, 180, 180)
+        doc.line(margin, yPos - 1, landscapeWidth - margin, yPos - 1)
+        yPos += 2
+        doc.setFont('helvetica', 'normal')
+      }
+      
+      const prevBalances = index > 0 ? logs[index - 1].balances : {}
+      
+      // Alternate row background
+      if (index % 2 === 1) {
+        doc.setFillColor(248, 248, 248)
+        doc.rect(margin, yPos - 3, landscapeWidth - margin * 2, 5, 'F')
+      }
+      
+      xPos = margin
+      
+      // Date
+      const logDate = new Date(log.timestamp)
+      const dateStr = logDate.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+      })
+      doc.setTextColor(0, 0, 0)
+      doc.text(dateStr, xPos, yPos)
+      xPos += dateColWidth
+      
+      // Transaction type
+      const typeLabel = log.transaction === 'DEPOSIT' ? 'DEP' : 
+                        log.transaction === 'WITHDRAWL' ? 'WTH' : 'TRF'
+      if (log.transaction === 'DEPOSIT') {
+        doc.setTextColor(0, 128, 0)
+      } else if (log.transaction === 'WITHDRAWL') {
+        doc.setTextColor(200, 0, 0)
+      } else {
+        doc.setTextColor(0, 0, 200)
+      }
+      doc.text(typeLabel, xPos, yPos)
+      xPos += typeColWidth
+      
+      // Amount
+      const amount = parseFloat(log.amount)
+      const amountPrefix = log.transaction === 'DEPOSIT' ? '+' : 
+                           log.transaction === 'WITHDRAWL' ? '-' : ''
+      doc.text(`${amountPrefix}${formatCurrency(amount)}`, xPos, yPos)
+      doc.setTextColor(0, 0, 0)
+      xPos += amountColWidth
+      
+      // Category balances
+      categoryIds.forEach((catId) => {
+        const currentBal = log.balances[catId] || 0
+        const prevBal = prevBalances[catId] || 0
+        const change = currentBal - prevBal
+        
+        // Format balance compactly
+        const balText = formatCurrency(currentBal)
+        
+        // Color based on change
+        if (index > 0 && change > 0) {
+          doc.setTextColor(0, 128, 0)
+        } else if (index > 0 && change < 0) {
+          doc.setTextColor(200, 0, 0)
+        } else {
+          doc.setTextColor(80, 80, 80)
+        }
+        doc.text(balText, xPos, yPos)
+        doc.setTextColor(0, 0, 0)
+        xPos += categoryColWidth
+      })
+      
+      yPos += 5
+    })
+    
+    // Summary at end of ledger
+    yPos += 8
+    if (yPos + 15 > landscapeHeight - margin) {
+      doc.addPage('landscape')
+      yPos = margin
+    }
+    
+    doc.setFontSize(9)
+    doc.setFont('helvetica', 'bold')
+    doc.setTextColor(0, 0, 0)
+    doc.text(`Total Transactions: ${logs.length}`, margin, yPos)
+    yPos += 5
+    
+    const deposits = logs.filter(l => l.transaction === 'DEPOSIT').length
+    const withdrawals = logs.filter(l => l.transaction === 'WITHDRAWL').length
+    const transfers = logs.filter(l => l.transaction === 'TRANSFER').length
+    
+    doc.setFont('helvetica', 'normal')
+    doc.setTextColor(0, 128, 0)
+    doc.text(`Deposits: ${deposits}`, margin, yPos)
+    doc.setTextColor(200, 0, 0)
+    doc.text(`Withdrawals: ${withdrawals}`, margin + 40, yPos)
+    doc.setTextColor(0, 0, 200)
+    doc.text(`Transfers: ${transfers}`, margin + 90, yPos)
+    doc.setTextColor(0, 0, 0)
+  }
+
+  // Footer - handle both portrait and landscape pages
   const totalPages = doc.getNumberOfPages()
   for (let i = 1; i <= totalPages; i++) {
     doc.setPage(i)
+    const currentPageWidth = doc.internal.pageSize.getWidth()
+    const currentPageHeight = doc.internal.pageSize.getHeight()
     doc.setFontSize(8)
     doc.setTextColor(150, 150, 150)
     doc.text(
       `Page ${i} of ${totalPages}`,
-      pageWidth / 2,
-      pageHeight - 10,
+      currentPageWidth / 2,
+      currentPageHeight - 10,
       { align: 'center' }
     )
     doc.text(
       `Generated on ${new Date().toLocaleDateString()}`,
-      pageWidth - margin,
-      pageHeight - 10,
+      currentPageWidth - margin,
+      currentPageHeight - 10,
       { align: 'right' }
     )
   }
