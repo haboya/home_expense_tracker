@@ -41,7 +41,7 @@ export async function GET(
             where: {
                 userId: session.user.id,
                 timestamp: {
-                    lte: new Date(period.endDate ? period.endDate.toISOString() : new Date()),
+                    lte: new Date(period.endDate ? period.endDate.toISOString() : new Date().toISOString()),
                     gte: new Date(period.startDate)
                 }
             },

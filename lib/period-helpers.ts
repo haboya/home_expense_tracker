@@ -24,7 +24,7 @@ export async function ensureActivePeriod(userId: string) {
         id: defaultId, // deterministic to enforce single creation
         userId,
         name: 'Default Period',
-        startDate: new Date(),
+        startDate: new Date().toISOString(),
         isActive: true,
         status: 'ACTIVE',
       },

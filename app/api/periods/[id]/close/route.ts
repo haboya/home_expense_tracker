@@ -58,7 +58,7 @@ export async function POST(
         data: {
           status: 'CLOSED',
           isActive: false,
-          endDate: new Date(),
+          endDate: new Date().toISOString(),
         },
       })
 

@@ -8,8 +8,8 @@ import { prisma } from '@/lib/prisma'
  */
 export async function generateUserId(): Promise<string> {
   const now = new Date()
-  const year = String(now.getFullYear()).slice(-2) // Last 2 digits of year
-  const month = String(now.getMonth() + 1).padStart(2, '0') // Month with leading zero
+  const year = String(now.getUTCFullYear()).slice(-2) // Last 2 digits of year
+  const month = String(now.getUTCMonth() + 1).padStart(2, '0') // Month with leading zero
   
   const prefix = `${year}-${month}-`
   
